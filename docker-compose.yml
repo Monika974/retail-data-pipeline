@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pipeline
+      POSTGRES_PASSWORD: pipeline
+      POSTGRES_DB: retail
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pipeline -d retail"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  pipeline:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://pipeline:pipeline@db:5432/retail
+      RAW_DIR: /app/data/raw
+      OUTPUT_DIR: /app/output
+    volumes:
+      - ./output:/app/output
+      - ./data/raw:/app/data/raw
+
+volumes:
+  pgdata:
